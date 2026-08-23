@@ -19,7 +19,9 @@ export default function Bills({ user, onLogout }) {
 
   const loadBills = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/home-bills?date=${selectedDate}`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE_URL}/api/home-bills?date=${selectedDate}`, { headers });
       if (res.data && res.data.success) {
         setBills(res.data.bills || []);
       }
@@ -34,11 +36,34 @@ export default function Bills({ user, onLogout }) {
 
   const handleConfirmBill = async (billId) => {
     try {
-      await axios.post(`${API_BASE_URL}/api/confirm-bill/${billId}`);
-      loadBills();
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await axios.post(`${API_BASE_URL}/api/confirm-bill/${billId}`, {}, { headers });
+      await loadBills();
       alert('Bill confirmed and marked as paid!');
     } catch (e) {
       alert('Failed to confirm bill');
+    }
+  };
+
+  const handleConfirmAllBills = async () => {
+    if (bills.length === 0) return;
+    const pendingBills = bills.filter(b => !(b.paid === 'YES' || b.confirmed));
+    if (pendingBills.length === 0) {
+      alert('All bills for this date are already confirmed!');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await Promise.all(
+        pendingBills.map(b => axios.post(`${API_BASE_URL}/api/confirm-bill/${b.id}`, {}, { headers }).catch(() => null))
+      );
+      await loadBills();
+      alert('All bills for this date confirmed successfully!');
+    } catch (e) {
+      alert('Failed to confirm all bills');
     }
   };
 
@@ -65,13 +90,15 @@ export default function Bills({ user, onLogout }) {
     const newAdvance = Number(editAdvance) || 0;
 
     try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       await axios.put(`${API_BASE_URL}/api/update-bill/${editingBill.id}`, {
         name: editName,
         no_of_bags: newBags,
         price: newPrice,
         advance: newAdvance,
         date: editDate
-      });
+      }, { headers });
       alert('Bill updated successfully!');
       setEditingBill(null);
       loadBills();
@@ -114,9 +141,27 @@ export default function Bills({ user, onLogout }) {
 
         {/* Table Card */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #8ce86a' }}>
-          <h2 align="center" style={{ color: '#15803d', margin: '0 0 16px 0', fontSize: '1.3rem', fontWeight: 'bold' }}>
-            - Confirmed & Pending Home Bills ({selectedDate}) -
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+            <h2 style={{ color: '#15803d', margin: 0, fontSize: '1.3rem', fontWeight: 'bold' }}>
+              - Confirmed & Pending Home Bills ({selectedDate}) -
+            </h2>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleConfirmAllBills}
+                style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                ✓ Confirm All Bills
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                🖨️ Print All Bills
+              </button>
+            </div>
+          </div>
 
           <div style={{ overflowX: 'auto' }}>
             {bills.length === 0 ? (
@@ -143,8 +188,8 @@ export default function Bills({ user, onLogout }) {
                     const total = bags * price;
                     const advance = Number(b.advance) || 0;
                     
-                    // Bill is ONLY confirmed/paid if paid === 'YES' OR confirmed === true AND advance >= total (when total > 0)
-                    const isConfirmed = (b.paid === 'YES' || b.confirmed) && (total === 0 || advance >= total);
+                    // Bill status is confirmed when paid === 'YES' OR confirmed === true OR advance >= total (when total > 0)
+                    const isConfirmed = b.paid === 'YES' || Boolean(b.confirmed) || (total > 0 && advance >= total);
 
                     return (
                       <tr key={b.id || idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>

@@ -18,7 +18,7 @@ export default function BeatPaper({ user, onLogout }) {
         setSearched(true);
         return;
       }
-    } catch (e) {}
+    } catch (e) { }
     setBills([]);
     setSearched(true);
   };
@@ -70,108 +70,94 @@ export default function BeatPaper({ user, onLogout }) {
   const grandTotalAmount = processedRows.reduce((acc, r) => acc + r.total, 0);
 
   return (
-    <div style={{ fontFamily: "'Times New Roman', Times, serif", backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ fontFamily: "'Times New Roman', Times, serif", backgroundColor: '#ffffff', minHeight: '100vh' }}>
       <Header user={user} onLogout={onLogout} />
 
-      <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Filter Card */}
-        <div style={{ maxWidth: '480px', margin: '0 auto 20px auto', backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
-          <div style={{ backgroundColor: '#4286f4', color: 'white', padding: '10px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>
-            Beat Paper
-          </div>
+      <div style={{ padding: '12px 16px' }}>
+        {/* Inline Date Filter Row matching reference image */}
+        <form onSubmit={handleGetBills} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '14px', color: '#0f172a' }}>Date</label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+            style={{ border: '1px solid #767676', padding: '3px 6px', borderRadius: '2px', fontSize: '14px', width: '140px' }}
+          />
+          <button
+            type="submit"
+            style={{ backgroundColor: '#efefef', color: '#000000', border: '1px solid #767676', borderRadius: '3px', padding: '3px 10px', fontSize: '13px', cursor: 'pointer' }}
+          >
+            Get Bills
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            style={{ backgroundColor: '#16a34a', color: '#ffffff', border: 'none', borderRadius: '3px', padding: '4px 12px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '6px' }}
+          >
+            🖨️ Print
+          </button>
+        </form>
 
-          <form onSubmit={handleGetBills} style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <label style={{ fontWeight: 'bold', fontSize: '14px' }}>Date:</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-                style={{ border: '1px solid #cbd5e1', padding: '6px', borderRadius: '4px', flex: '1' }}
-              />
-              <button
-                type="submit"
-                style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 16px', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                Get Bills
-              </button>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 14px', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                🖨️ Print
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Report Table Card */}
-        <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #8ce86a' }}>
-          <h2 align="center" style={{ color: '#15803d', margin: '0 0 16px 0', fontSize: '1.3rem', fontWeight: 'bold' }}>
-            - Beat Paper ({date}) -
-          </h2>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table width="100%" style={{ borderCollapse: 'collapse', minWidth: '600px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#15803d', color: 'white' }}>
-                  <th style={{ padding: '8px', textAlign: 'center', width: '60px' }}>S.No.</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Kisan Name</th>
-                  <th style={{ padding: '8px', textAlign: 'center', width: '100px' }}>No.of bags</th>
-                  <th style={{ padding: '8px', textAlign: 'center', width: '120px' }}>Price</th>
-                  <th style={{ padding: '8px', textAlign: 'right', width: '140px' }}>Total</th>
+        {/* Compact Left-Aligned Table (~320px width) matching reference image */}
+        <div style={{ width: 'fit-content', minWidth: '300px', maxWidth: '360px' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#15803d', color: '#ffffff' }}>
+                <th style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #15803d', fontWeight: 'bold', width: '45px' }}>S.No.</th>
+                <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #15803d', fontWeight: 'bold' }}>Kisan Name</th>
+                <th style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #15803d', fontWeight: 'bold', width: '70px' }}>No.of bags</th>
+                <th style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #15803d', fontWeight: 'bold', width: '55px' }}>Price</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #15803d', fontWeight: 'bold', width: '65px' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {processedRows.length === 0 ? (
+                <tr>
+                  <td colSpan="5" align="center" style={{ padding: '16px', color: '#dc2626', fontWeight: 'bold', border: '1px solid #cbd5e1' }}>
+                    No Bills Found for {date}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {processedRows.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" align="center" style={{ padding: '20px', color: '#dc2626', fontWeight: 'bold' }}>
-                      No Bills Found for {date}
+              ) : (
+                processedRows.map((row, idx) => (
+                  <tr
+                    key={idx}
+                    style={{
+                      borderBottom: '1px solid #e2e8f0',
+                      backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc'
+                    }}
+                  >
+                    <td style={{ padding: '5px 8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #e2e8f0' }}>
+                      {row.sno}
+                    </td>
+                    <td style={{ padding: '5px 8px', fontWeight: 'bold', color: '#0f172a', border: '1px solid #e2e8f0' }}>
+                      {row.kisanName}
+                    </td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>
+                      {row.bags}
+                    </td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>
+                      {row.price}
+                    </td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 'bold', border: '1px solid #e2e8f0' }}>
+                      {row.total.toLocaleString()}
                     </td>
                   </tr>
-                ) : (
-                  processedRows.map((row, idx) => (
-                    <tr
-                      key={idx}
-                      style={{
-                        borderBottom: '1px solid #e2e8f0',
-                        backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc'
-                      }}
-                    >
-                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>
-                        {row.sno}
-                      </td>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#0f172a' }}>
-                        {row.kisanName}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>
-                        {row.bags}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>
-                        {row.price}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
-                        {row.total.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))
+              )}
 
-                {processedRows.length > 0 && (
-                  <tr style={{ backgroundColor: '#f1f5f9', fontWeight: 'bold', borderTop: '2px solid #cbd5e1' }}>
-                    <td colSpan="2" align="right" style={{ padding: '10px' }}>Total:</td>
-                    <td align="center" style={{ padding: '10px', color: '#15803d' }}>{grandTotalBags}</td>
-                    <td></td>
-                    <td align="right" style={{ padding: '10px', color: '#15803d', fontSize: '1.1rem' }}>
-                      ₹{grandTotalAmount.toLocaleString()}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              {processedRows.length > 0 && (
+                <tr style={{ backgroundColor: '#ffffff', fontWeight: 'bold', borderTop: '2px solid #cbd5e1' }}>
+                  <td colSpan="2" align="right" style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>Total</td>
+                  <td align="center" style={{ padding: '6px 8px', color: '#0f172a', border: '1px solid #e2e8f0' }}>{grandTotalBags}</td>
+                  <td style={{ border: '1px solid #e2e8f0' }}></td>
+                  <td align="right" style={{ padding: '6px 8px', color: '#0f172a', border: '1px solid #e2e8f0' }}>
+                    {grandTotalAmount.toLocaleString()}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

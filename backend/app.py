@@ -84,11 +84,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         try:
             conn = db.get_db()
             conn.close()
-            return jsonify({
-                "status": "healthy",
-                "success": True,
-                "database": "postgresql" if db.using_postgres() else "sqlite"
-            }), 200
+            return jsonify({"status": "healthy", "success": True}), 200
         except Exception:
             return jsonify({"status": "unhealthy", "success": False}), 503
 
