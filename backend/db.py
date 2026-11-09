@@ -407,10 +407,15 @@ def _apply_postgres_migrations(cursor) -> None:
         cursor.execute(statement)
 
     try:
+        cursor.execute("SAVEPOINT user_migration_sp")
         cursor.execute('UPDATE "user" SET status = \'APPROVED\', is_approved = TRUE, role = \'ADMIN\', user_type = \'ADMIN\' WHERE user_id = 1')
         cursor.execute('UPDATE "user" SET status = \'APPROVED\', is_approved = TRUE WHERE status IS NULL')
+        cursor.execute("RELEASE SAVEPOINT user_migration_sp")
     except Exception:
-        pass
+        try:
+            cursor.execute("ROLLBACK TO SAVEPOINT user_migration_sp")
+        except Exception:
+            pass
 
     for statement in [
         "CREATE INDEX IF NOT EXISTS idx_inventory_user_date_type ON inventory (user_id, date, type)",

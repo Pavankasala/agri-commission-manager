@@ -148,8 +148,8 @@ def signup():
         return jsonify({"success": False, "message": "Name, email, and password are required"}), 400
     if not EMAIL_RE.fullmatch(email):
         return jsonify({"success": False, "message": "Please enter a valid email address"}), 400
-    if len(password) < 8:
-        return jsonify({"success": False, "message": "Password must be at least 8 characters"}), 400
+    if len(password) < 6:
+        return jsonify({"success": False, "message": "Password must be at least 6 characters"}), 400
 
     conn = db.get_db()
     try:
@@ -162,14 +162,24 @@ def signup():
 
         cursor.execute(f"SELECT COUNT(*) AS count FROM {table}")
         count_row = cursor.fetchone()
-        user_count = int(dict(count_row).get("count") or 0) if count_row else 0
+        user_count = 0
+        if count_row:
+            if hasattr(count_row, "get"):
+                user_count = int(count_row.get("count") or 0)
+            elif isinstance(count_row, (list, tuple)):
+                user_count = int(count_row[0] or 0)
+            else:
+                try:
+                    user_count = int(dict(count_row).get("count") or 0)
+                except Exception:
+                    user_count = int(count_row[0] or 0)
         is_first_user = (user_count == 0)
 
         user_name = _new_username(cursor, email, p)
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         status = "APPROVED" if is_first_user else "PENDING"
-        is_approved = 1 if is_first_user else 0
+        is_approved = True if is_first_user else False
         role = "ADMIN" if is_first_user else "USER"
         user_type = "ADMIN" if is_first_user else "OPE"
 
@@ -197,6 +207,10 @@ def signup():
                 "message": "Account created successfully! Your request has been sent for administrator approval. You can access the application once approved.",
                 "user": user_obj
             }), 201
+    except Exception as exc:
+        conn.rollback()
+        current_app.logger.exception("Sign up error: %s", exc)
+        return jsonify({"success": False, "message": f"Sign-up error: {str(exc)}"}), 500
     finally:
         conn.close()
 
@@ -232,13 +246,23 @@ def google_auth():
         if not user:
             cursor.execute(f"SELECT COUNT(*) AS count FROM {table}")
             count_row = cursor.fetchone()
-            user_count = int(dict(count_row).get("count") or 0) if count_row else 0
+            user_count = 0
+            if count_row:
+                if hasattr(count_row, "get"):
+                    user_count = int(count_row.get("count") or 0)
+                elif isinstance(count_row, (list, tuple)):
+                    user_count = int(count_row[0] or 0)
+                else:
+                    try:
+                        user_count = int(dict(count_row).get("count") or 0)
+                    except Exception:
+                        user_count = int(count_row[0] or 0)
             is_first_user = (user_count == 0)
 
             user_name = _new_username(cursor, email, p)
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             status = "APPROVED" if is_first_user else "PENDING"
-            is_approved = 1 if is_first_user else 0
+            is_approved = True if is_first_user else False
             role = "ADMIN" if is_first_user else "USER"
             user_type = "ADMIN" if is_first_user else "OPE"
 
@@ -355,7 +379,7 @@ def approve_user(target_id: int):
         if not user:
             return jsonify({"success": False, "message": "User not found"}), 404
 
-        approved_val = True if db.using_postgres() else 1
+        approved_val = True
         cursor.execute(
             f"UPDATE {table} SET status = 'APPROVED', is_approved = {p} WHERE user_id = {p}",
             (approved_val, target_id),
@@ -390,7 +414,7 @@ def reject_user(target_id: int):
         if not user:
             return jsonify({"success": False, "message": "User not found"}), 404
 
-        rejected_val = False if db.using_postgres() else 0
+        rejected_val = False
         cursor.execute(
             f"UPDATE {table} SET status = 'REJECTED', is_approved = {p} WHERE user_id = {p}",
             (rejected_val, target_id),
@@ -425,7 +449,7 @@ def revoke_user(target_id: int):
         if not user:
             return jsonify({"success": False, "message": "User not found"}), 404
 
-        pending_val = False if db.using_postgres() else 0
+        pending_val = False
         cursor.execute(
             f"UPDATE {table} SET status = 'PENDING', is_approved = {p} WHERE user_id = {p}",
             (pending_val, target_id),
@@ -464,7 +488,7 @@ def toggle_user_role(target_id: int):
         new_role = "ADMIN" if is_now_admin else "USER"
         new_type = "ADMIN" if is_now_admin else "OPE"
         new_status = "APPROVED" if is_now_admin else str(user_dict.get("status") or "APPROVED")
-        new_approved = (True if db.using_postgres() else 1) if is_now_admin else (user_dict.get("is_approved") or 0)
+        new_approved = True if is_now_admin else bool(user_dict.get("is_approved"))
 
         cursor.execute(
             f"""
@@ -522,7 +546,7 @@ def get_pending_count():
     try:
         cursor = conn.cursor()
         table = db.user_table()
-        cursor.execute(f"SELECT COUNT(*) AS count FROM {table} WHERE (status = 'PENDING' OR is_approved = 0) AND user_id != 1")
+        cursor.execute(f"SELECT COUNT(*) AS count FROM {table} WHERE (status = 'PENDING' OR NOT is_approved) AND user_id != 1")
         row = cursor.fetchone()
         count = int(dict(row).get("count") or 0) if row else 0
         return jsonify({"success": True, "pending_count": count})

@@ -150,7 +150,16 @@ export default function Signup({ onLoginSuccess }) {
         setError(response.data?.message || "Signup failed. Please try again.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Signup failed. Please try again.");
+      const errMsg =
+        err.response?.data?.message ||
+        (typeof err.response?.data === "string" && err.response.data.includes("already exists")
+          ? "An account with this email already exists. Please sign in."
+          : null) ||
+        (typeof err.response?.data === "string" && !err.response.data.startsWith("<")
+          ? err.response.data
+          : null) ||
+        "Sign-up failed. Please verify your details or try again.";
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
