@@ -1,7 +1,7 @@
 import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../api/config";
 import "../styles/modal.css";
 
@@ -13,9 +13,38 @@ function BillModal({ bill, isBuyerPage, onClose }) {
     bill?.mobile || bill?.mobileNo || bill?.phone || ""
   );
 
+  useEffect(() => {
+    const existingMobile = bill?.mobile || bill?.mobileNo || bill?.phone || "";
+    if (existingMobile) {
+      setRecipientMobile(existingMobile);
+      return;
+    }
+    // Automatically fetch mobile number from kisans directory if not directly attached
+    const fetchMobile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${API_BASE_URL}/api/kisans`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.data && res.data.success) {
+          const kisans = res.data.kisans || [];
+          const currentName = (bill?.kisanName || bill?.name || "").trim().toLowerCase();
+          const match = kisans.find(k => (k.name || "").trim().toLowerCase() === currentName);
+          if (match && match.mobile) {
+            setRecipientMobile(match.mobile);
+          }
+        }
+      } catch (e) {}
+    };
+    if (bill) {
+      fetchMobile();
+    }
+  }, [bill]);
+
   if (!bill) return null;
 
   const isBuyerBill = bill.type === "BUYER" || Boolean(isBuyerPage);
+  const isPaid = bill.paid === "YES";
   const farmerName = bill.kisanName || bill.name || (isBuyerBill ? "Buyer" : "Kisan");
   const billDate = bill.date || new Date().toISOString().split("T")[0];
   const billTime = bill.time || bill.advanceTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -41,10 +70,14 @@ function BillModal({ bill, isBuyerPage, onClose }) {
   const advanceVal = Number(bill.advance) || 0;
 
   const totalExpenses = commissionVal + hamaliVal + damagedGoodsVal + advanceVal;
-  const computedNet = isBuyerBill
-    ? grossTotal - advanceVal
-    : grossTotal - totalExpenses;
-  const netPayable = Math.max(0, computedNet);
+  const computedUnsettledNet = isBuyerBill
+    ? Math.max(0, grossTotal - advanceVal)
+    : Math.max(0, grossTotal - totalExpenses);
+
+  // When paid is YES, net payable MUST be ZERO (0)!
+  const netPayable = isPaid ? 0 : computedUnsettledNet;
+  const settledAmount = isPaid ? (Number(bill.paid_amount) || computedUnsettledNet) : 0;
+  const paymentDate = bill.paid_date || (isPaid ? `${billDate} ${billTime}` : null);
 
   // PDF Export Feature
   const handleDownloadPDF = async () => {
@@ -177,11 +210,18 @@ function BillModal({ bill, isBuyerPage, onClose }) {
     try {
       navigator.clipboard.writeText(text);
 
-      await axios.post(`${API_BASE_URL}/api/send-sms`, {
-        mobile: cleanMobile,
-        message: text,
-        bill_id: bill.id
-      });
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/api/send-sms`,
+        {
+          mobile: cleanMobile,
+          message: text,
+          bill_id: bill?.id,
+        },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
 
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -218,7 +258,11 @@ function BillModal({ bill, isBuyerPage, onClose }) {
       channelBreakdown = `Bags: ${totalBagsCount} @ Rs.${bill.price || 0}`;
     }
 
-    const text = `Agri Commission Manager Invoice #${bill.id || 101}\nDate & Time: ${billDate} ${billTime}\nFarmer: ${farmerName}\n${channelBreakdown}\nGross: Rs.${grossTotal}\nCommission (4%): -Rs.${commissionVal}\nDamage (5%): -Rs.${damagedGoodsVal}\nAdvance Paid: -Rs.${advanceVal}\nNet Payable: Rs.${netPayable}\nThank you!`;
+    const paymentLine = isPaid
+      ? `\nPaid & Settled: Rs.${settledAmount} on ${paymentDate || billDate}\nBalance Due: Rs.0 (PAID IN FULL)`
+      : `\nNet Payable: Rs.${netPayable}`;
+
+    const text = `Agri Commission Manager Invoice #${bill.id || 101}\nDate & Time: ${billDate} ${billTime}\nFarmer: ${farmerName}\n${channelBreakdown}\nGross: Rs.${grossTotal}\nCommission (4%): -Rs.${commissionVal}\nDamage (6%): -Rs.${damagedGoodsVal}\nAdvance Paid: -Rs.${advanceVal}${paymentLine}\nThank you!`;
     dispatchSMS(text, "Full Invoice Message");
   };
 
@@ -244,7 +288,11 @@ function BillModal({ bill, isBuyerPage, onClose }) {
       return;
     }
 
-    const text = `*Agri Commission Manager Invoice #${bill.id || 101}*\n*Date & Time:* ${billDate} ${billTime}\n*Farmer:* ${farmerName}\n*Bags:* ${totalBagsCount}\n*Gross Total:* Rs.${grossTotal}\n*Commission (4%):* -Rs.${commissionVal}\n*Damage (5%):* -Rs.${damagedGoodsVal}\n*Advance Paid:* -Rs.${advanceVal}\n*Net Payable:* Rs.${netPayable}`;
+    const paymentLine = isPaid
+      ? `\n*Paid & Settled:* Rs.${settledAmount} on ${paymentDate || billDate}\n*Balance Due:* Rs.0 (PAID IN FULL ✓)`
+      : `\n*Net Payable:* Rs.${netPayable}`;
+
+    const text = `*Agri Commission Manager Invoice #${bill.id || 101}*\n*Date & Time:* ${billDate} ${billTime}\n*Farmer:* ${farmerName}\n*Bags:* ${totalBagsCount}\n*Gross Total:* Rs.${grossTotal}\n*Commission (4%):* -Rs.${commissionVal}\n*Damage (6%):* -Rs.${damagedGoodsVal}\n*Advance Paid:* -Rs.${advanceVal}${paymentLine}`;
     const waUrl = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(text)}`;
     window.open(waUrl, "_blank");
   };
@@ -301,25 +349,31 @@ function BillModal({ bill, isBuyerPage, onClose }) {
             <div>
               <span>{isBuyerBill ? "Farmer / Buyer name:" : "Farmer / Kisan:"}</span> <strong>{farmerName}</strong>
             </div>
-            <div style={{ display: "flex", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
               <span>Mobile No:</span>
               <input
                 id="recipient-mobile-input"
                 type="text"
-                placeholder="Enter Mobile No."
+                placeholder="Mobile No."
                 value={recipientMobile}
                 onChange={(e) => setRecipientMobile(e.target.value)}
                 style={{
                   padding: "4px 8px",
                   fontSize: "0.88rem",
                   borderRadius: "4px",
-                  border: "1px solid #cbd5e1",
+                  border: recipientMobile ? "1px solid #16a34a" : "1px solid #cbd5e1",
+                  backgroundColor: recipientMobile ? "#f0fdf4" : "#ffffff",
                   width: "140px",
-                  marginLeft: "6px",
+                  marginLeft: "4px",
                   fontWeight: "bold",
                   outline: "none"
                 }}
               />
+              {recipientMobile && (
+                <span style={{ fontSize: "0.72rem", color: "#15803d", backgroundColor: "#dcfce7", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>
+                  ✓ Auto-fetched
+                </span>
+              )}
             </div>
           </div>
 
@@ -428,9 +482,99 @@ function BillModal({ bill, isBuyerPage, onClose }) {
               </div>
             )}
 
-            <div className="summary-row highlight-net" style={{ display: "flex", justifyContent: "space-between", fontSize: "1.05rem", fontWeight: "bold", borderTop: "2px solid #1e293b", paddingTop: "6px", marginTop: "6px", color: "#166534" }}>
+            {isPaid && (
+              <div className="summary-row" style={{ display: "flex", justifyContent: "space-between", color: "#15803d", fontWeight: "bold", backgroundColor: "#f0fdf4", padding: "4px 8px", borderRadius: "4px" }}>
+                <span>Amount Paid & Settled ({paymentDate || 'Paid'}):</span>
+                <span>- ₹{settledAmount.toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="summary-row highlight-net" style={{ display: "flex", justifyContent: "space-between", fontSize: "1.05rem", fontWeight: "bold", borderTop: "2px solid #1e293b", paddingTop: "6px", marginTop: "6px", color: isPaid ? "#15803d" : "#166534" }}>
               <span>Net Payable Amount:</span>
-              <strong>₹{netPayable.toLocaleString()}</strong>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {isPaid && (
+                  <span style={{ fontSize: "0.75rem", backgroundColor: "#dcfce7", color: "#15803d", padding: "2px 8px", borderRadius: "4px", border: "1px solid #86efac", fontWeight: "bold" }}>
+                    ✓ PAID IN FULL
+                  </span>
+                )}
+                <strong>₹{netPayable.toLocaleString()}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment & Transaction History Card */}
+          <div className="no-print" style={{
+            marginTop: "16px",
+            backgroundColor: isPaid ? "#f0fdf4" : "#fefce8",
+            border: isPaid ? "1px solid #86efac" : "1px solid #fef08a",
+            borderRadius: "8px",
+            padding: "14px 16px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "6px" }}>
+              <div style={{ fontWeight: "bold", fontSize: "0.95rem", color: isPaid ? "#166534" : "#854d0e", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>💳 Payment & Settlement History</span>
+              </div>
+              <span style={{
+                backgroundColor: isPaid ? "#16a34a" : "#ca8a04",
+                color: "#ffffff",
+                padding: "3px 10px",
+                borderRadius: "12px",
+                fontSize: "0.78rem",
+                fontWeight: "bold",
+                letterSpacing: "0.5px"
+              }}>
+                {isPaid ? "✓ PAID IN FULL" : "⏳ UNPAID / PENDING"}
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px", fontSize: "0.85rem" }}>
+              <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                <span style={{ color: "#64748b", fontSize: "0.75rem", display: "block" }}>Bill Created</span>
+                <strong style={{ color: "#1e293b" }}>{billDate} {billTime}</strong>
+              </div>
+
+              <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                <span style={{ color: "#64748b", fontSize: "0.75rem", display: "block" }}>Advance Received</span>
+                <strong style={{ color: advanceVal > 0 ? "#16a34a" : "#64748b" }}>
+                  {advanceVal > 0 ? `₹${advanceVal.toLocaleString()} (${billDate} ${billTime})` : "₹0 (No Advance)"}
+                </strong>
+              </div>
+
+              {isPaid ? (
+                <>
+                  <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #86efac" }}>
+                    <span style={{ color: "#166534", fontSize: "0.75rem", display: "block", fontWeight: "bold" }}>Date & Time Paid</span>
+                    <strong style={{ color: "#15803d" }}>{paymentDate || "Marked as Paid"}</strong>
+                  </div>
+
+                  <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #86efac" }}>
+                    <span style={{ color: "#166534", fontSize: "0.75rem", display: "block", fontWeight: "bold" }}>Amount Paid at Settlement</span>
+                    <strong style={{ color: "#15803d", fontSize: "1rem" }}>₹{settledAmount.toLocaleString()}</strong>
+                  </div>
+
+                  <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #86efac" }}>
+                    <span style={{ color: "#166534", fontSize: "0.75rem", display: "block", fontWeight: "bold" }}>Total Amount Collected</span>
+                    <strong style={{ color: "#15803d" }}>₹{(advanceVal + settledAmount).toLocaleString()}</strong>
+                  </div>
+
+                  <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #86efac" }}>
+                    <span style={{ color: "#166534", fontSize: "0.75rem", display: "block", fontWeight: "bold" }}>Current Outstanding Due</span>
+                    <strong style={{ color: "#16a34a", fontSize: "1rem" }}>₹0 (Cleared ✓)</strong>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #fecaca" }}>
+                    <span style={{ color: "#b91c1c", fontSize: "0.75rem", display: "block", fontWeight: "bold" }}>Outstanding Balance</span>
+                    <strong style={{ color: "#dc2626", fontSize: "1rem" }}>₹{computedUnsettledNet.toLocaleString()}</strong>
+                  </div>
+
+                  <div style={{ backgroundColor: "#ffffff", padding: "8px 10px", borderRadius: "6px", border: "1px solid #fed7aa" }}>
+                    <span style={{ color: "#c2410c", fontSize: "0.75rem", display: "block", fontWeight: "bold" }}>Payment Status</span>
+                    <strong style={{ color: "#ea580c" }}>Yet to Collect</strong>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -438,13 +582,16 @@ function BillModal({ bill, isBuyerPage, onClose }) {
           <div id="thermal-slip-view" style={{ marginTop: "20px", border: "1px dashed #64748b", padding: "16px", backgroundColor: "#ffffff", borderRadius: "8px", fontFamily: "monospace", maxWidth: "340px", margin: "20px auto 0 auto", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
             <div style={{ textAlign: "left", marginBottom: "8px" }}>
               <div style={{ fontWeight: "bold", fontSize: "14px" }}>NAME : {farmerName.toUpperCase()}</div>
+              {recipientMobile && (
+                <div style={{ fontSize: "12px", color: "#334155", marginTop: "2px" }}>MOBILE : {recipientMobile}</div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginTop: "4px" }}>
                 <span>DATE : {billDate}</span>
                 <span>No. {bill.id || '55113'}</span>
               </div>
             </div>
             <div style={{ borderTop: "1px dashed #334155", margin: "8px 0" }}></div>
-            
+
             <div style={{ display: "grid", gridTemplateColumns: isBuyerBill ? "1.2fr 0.6fr 1fr 1fr" : "1fr 1fr 1fr", fontSize: "13px", fontWeight: "bold", marginBottom: "4px" }}>
               {isBuyerBill && <span>KISAN</span>}
               <span style={{ textAlign: isBuyerBill ? "center" : "left" }}>QTY</span>
@@ -506,10 +653,16 @@ function BillModal({ bill, isBuyerPage, onClose }) {
                     <span>- {advanceVal}</span>
                   </div>
                 )}
+                {isPaid && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+                    <span>Paid ({paymentDate || 'Settled'})</span>
+                    <span>- {settledAmount}</span>
+                  </div>
+                )}
                 <div style={{ borderTop: "1px dashed #334155", margin: "6px 0" }}></div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
                   <span>Total Expenses</span>
-                  <span>{totalExpenses}</span>
+                  <span>{isPaid ? (totalExpenses + settledAmount) : totalExpenses}</span>
                 </div>
                 <div style={{ borderTop: "1px dashed #334155", margin: "6px 0" }}></div>
               </div>
@@ -521,11 +674,22 @@ function BillModal({ bill, isBuyerPage, onClose }) {
                 <span>- {advanceVal}</span>
               </div>
             )}
+            {isPaid && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", margin: "4px 0", fontWeight: "bold", color: "#166534" }}>
+                <span>Paid ({paymentDate || 'Settled'})</span>
+                <span>- {settledAmount}</span>
+              </div>
+            )}
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px", fontWeight: "bold", margin: "6px 0" }}>
               <span>{isBuyerBill ? "Nett Payable" : "Nett"}</span>
               <span>{netPayable}</span>
             </div>
+            {isPaid && (
+              <div style={{ textAlign: "center", fontSize: "12px", fontWeight: "bold", color: "#166534", margin: "4px 0", border: "1px dashed #166534", padding: "4px", backgroundColor: "#f0fdf4" }}>
+                *** STATUS: PAID IN FULL (Rs. 0 DUE) ***
+              </div>
+            )}
             <div style={{ borderTop: "1px dashed #334155", margin: "8px 0" }}></div>
 
             <div style={{ textAlign: "center", marginTop: "10px", fontSize: "12px", fontWeight: "bold", letterSpacing: "1px" }}>

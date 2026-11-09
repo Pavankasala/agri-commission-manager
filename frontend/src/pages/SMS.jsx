@@ -49,7 +49,7 @@ export default function SMS({ user, onLogout }) {
       if (res.data && res.data.success) {
         allBills = (res.data.bills || []).filter(b => b.type !== 'BUYER');
       }
-    } catch (err) {}
+    } catch (err) { }
 
     const generated = generateSmsFromBills(allBills);
     setSmsList(generated);
@@ -138,7 +138,7 @@ export default function SMS({ user, onLogout }) {
                             <div style={{ fontFamily: 'monospace', fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-wrap', color: '#0f172a', marginBottom: '10px' }}>
                               {item.smsText}
                             </div>
-                            
+
                             {/* Action Buttons for Mobile Testing & Delivery */}
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                               <a

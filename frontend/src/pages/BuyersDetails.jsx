@@ -43,7 +43,7 @@ export default function BuyersDetails({ user, onLogout }) {
     try {
       await axios.delete(`${API_BASE_URL}/api/delete-bill/${billId}`);
       fetchBills(billdate);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const fetchBills = async (selectedDate) => {
@@ -186,7 +186,7 @@ export default function BuyersDetails({ user, onLogout }) {
           priceSold
         });
       }
-    } catch (err) {}
+    } catch (err) { }
 
     alert(editingBillId ? 'Updated successfully' : 'Saved successfully');
     setEditingBillId(null);
@@ -209,13 +209,13 @@ export default function BuyersDetails({ user, onLogout }) {
       <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
         {/* Responsive Container for Form & Today's Buyer Activity Summary */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-          
+
           {/* Buyers Details Form Card */}
           <div style={{ flex: '1 1 340px', minWidth: '280px', backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
             <div style={{ backgroundColor: '#4286f4', color: 'white', padding: '10px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>
               {editingBillId ? 'Edit Buyer Bill' : 'Buyer Bills'}
             </div>
-            
+
             <form onSubmit={handleSubmit} style={{ padding: '16px' }}>
               <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <label style={{ width: '100px', fontWeight: 'bold', fontSize: '14px' }}>Date:</label>
@@ -376,7 +376,7 @@ export default function BuyersDetails({ user, onLogout }) {
           <div style={{ flex: '1 1 340px', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1' }}>
               <h3 style={{ margin: '0 0 12px 0', color: '#15803d', fontSize: '1.1rem', fontWeight: 'bold' }}>📊 Today's Buyer Summary</h3>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
                 <div style={{ backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
                   <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>BUYER BILLS</span>
@@ -398,7 +398,7 @@ export default function BuyersDetails({ user, onLogout }) {
             {/* Quick Receipts List Card */}
             <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1' }}>
               <h3 style={{ margin: '0 0 12px 0', color: '#1e293b', fontSize: '1.1rem', fontWeight: 'bold' }}>📄 Quick Print & Send Receipts</h3>
-              
+
               {bills.length === 0 ? (
                 <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>No buyer bills created for today yet. Fill out the form to add a buyer bill.</p>
               ) : (
@@ -466,65 +466,65 @@ export default function BuyersDetails({ user, onLogout }) {
                     // BUYER: net = gross (no commission/hamali deductions)
                     const net = gross;
                     return (
-                    <tr key={b.id || idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
-                      <td style={{ padding: '8px' }}>{idx + 1}</td>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#0f172a' }}>{b.name}</td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>{b.no_of_bags}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>₹{gross.toLocaleString()}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: '#1e40af' }}>₹{net.toLocaleString()}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', color: '#dc2626' }}>
-                        ₹{Number(b.advance || 0).toLocaleString()}
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            fontSize: '11px',
-                            color: (b.paymentMode || b.payment_mode) === 'UPI' ? '#2563eb' : '#15803d',
-                            backgroundColor: (b.paymentMode || b.payment_mode) === 'UPI' ? '#eff6ff' : '#f0fdf4',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            border: `1px solid ${(b.paymentMode || b.payment_mode) === 'UPI' ? '#bfdbfe' : '#bbf7d0'}`,
-                            marginLeft: '6px',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {(b.paymentMode || b.payment_mode) === 'UPI' ? '📱 UPI' : '💵 Cash'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px' }}>{b.date || billdate} {b.time || b.advanceTime || ''}</td>
-                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: b.paid === 'YES' ? '#16a34a' : '#dc2626' }}>{b.paid || 'NO'}</td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedBill(b)}
-                            style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                      <tr key={b.id || idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                        <td style={{ padding: '8px' }}>{idx + 1}</td>
+                        <td style={{ padding: '8px', fontWeight: 'bold', color: '#0f172a' }}>{b.name}</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>{b.no_of_bags}</td>
+                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>₹{gross.toLocaleString()}</td>
+                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: '#1e40af' }}>₹{net.toLocaleString()}</td>
+                        <td style={{ padding: '8px', textAlign: 'right', color: '#dc2626' }}>
+                          ₹{Number(b.advance || 0).toLocaleString()}
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              fontSize: '11px',
+                              color: (b.paymentMode || b.payment_mode) === 'UPI' ? '#2563eb' : '#15803d',
+                              backgroundColor: (b.paymentMode || b.payment_mode) === 'UPI' ? '#eff6ff' : '#f0fdf4',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: `1px solid ${(b.paymentMode || b.payment_mode) === 'UPI' ? '#bfdbfe' : '#bbf7d0'}`,
+                              marginLeft: '6px',
+                              fontWeight: 'bold'
+                            }}
                           >
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleEditClick(b)}
-                            style={{ backgroundColor: '#eab308', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMarkPaid(b)}
-                            style={{ backgroundColor: b.paid === 'YES' ? '#64748b' : '#16a34a', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            {b.paid === 'YES' ? 'Unmark' : '✓ Paid'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(b.id)}
-                            style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                            {(b.paymentMode || b.payment_mode) === 'UPI' ? '📱 UPI' : '💵 Cash'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px' }}>{b.date || billdate} {b.time || b.advanceTime || ''}</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: b.paid === 'YES' ? '#16a34a' : '#dc2626' }}>{b.paid || 'NO'}</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedBill(b)}
+                              style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEditClick(b)}
+                              style={{ backgroundColor: '#eab308', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMarkPaid(b)}
+                              style={{ backgroundColor: b.paid === 'YES' ? '#64748b' : '#16a34a', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            >
+                              {b.paid === 'YES' ? 'Unmark' : '✓ Paid'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(b.id)}
+                              style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>

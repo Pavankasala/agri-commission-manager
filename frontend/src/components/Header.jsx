@@ -1,10 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { API_ENDPOINTS } from '../api/config';
 
 export default function Header({ user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const isAdmin = Boolean(
+    user?.is_admin ||
+    user?.role === 'ADMIN' ||
+    user?.user_type === 'ADMIN' ||
+    user?.user_id === 1 ||
+    user?.id === 1
+  );
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    let isMounted = true;
+    const fetchCount = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await axios.get(API_ENDPOINTS.ADMIN_PENDING_COUNT, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (isMounted && res.data?.success) {
+          setPendingCount(res.data.pending_count || 0);
+        }
+      } catch (e) {}
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isAdmin]);
 
   const handleLogout = (e) => {
     e.preventDefault();
@@ -36,6 +70,7 @@ export default function Header({ user, onLogout }) {
   ];
 
   const quickLinks = [
+    ...(isAdmin ? [{ path: '/user-approvals', label: pendingCount > 0 ? `🔐 Approvals (${pendingCount})` : '🔐 Approvals' }] : []),
     { path: '/bags', label: '📦 Bags' },
     { path: '/settings', label: '⚙️ Settings' },
     { path: '/kisans', label: '👨‍🌾 Kisans' },
@@ -306,6 +341,41 @@ export default function Header({ user, onLogout }) {
           </Link>
 
           <div className="header-actions">
+            {isAdmin && (
+              <Link
+                to="/user-approvals"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: pendingCount > 0 ? '#ea580c' : 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  textDecoration: 'none',
+                  border: pendingCount > 0 ? '1px solid #fdba74' : '1px solid rgba(255,255,255,0.3)',
+                  boxShadow: pendingCount > 0 ? '0 0 8px rgba(234, 88, 12, 0.6)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+                title={pendingCount > 0 ? `${pendingCount} users waiting for your approval` : "Manage User Approvals"}
+              >
+                <span>🔐 Approvals</span>
+                {pendingCount > 0 && (
+                  <span style={{
+                    background: 'white',
+                    color: '#ea580c',
+                    borderRadius: '10px',
+                    padding: '1px 6px',
+                    fontSize: '11px',
+                    fontWeight: '800'
+                  }}>
+                    {pendingCount}
+                  </span>
+                )}
+              </Link>
+            )}
             <div className="header-user-badge">
               👤 {ownerName}
             </div>

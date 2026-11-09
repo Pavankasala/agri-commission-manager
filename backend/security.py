@@ -19,6 +19,7 @@ from flask_jwt_extended import (
     decode_token,
     get_jwt_identity,
     jwt_required,
+    verify_jwt_in_request,
 )
 
 LEGACY_MD5_RE = re.compile(r"^[a-f0-9]{32}$", re.IGNORECASE)
@@ -46,16 +47,80 @@ def get_authenticated_user_id(req=request) -> int | None:
 
 
 def require_auth(view):
-    """Require a valid JWT token and make its subject available as g.user_id."""
+    """Require a valid JWT token, verify user approval, and make user info available."""
 
     @wraps(view)
-    @jwt_required()
     def wrapped(*args, **kwargs):
+        if request.method == "OPTIONS":
+            return view(*args, **kwargs)
+
+        try:
+            verify_jwt_in_request()
+        except Exception:
+            return jsonify({"success": False, "message": "Missing or invalid authorization token"}), 401
+
         identity = get_jwt_identity()
         try:
             g.user_id = int(identity)
         except (ValueError, TypeError):
             return jsonify({"success": False, "message": "Invalid user token"}), 401
+
+        import db
+        conn = db.get_db()
+        try:
+            cursor = conn.cursor()
+            p = db.ph()
+            cursor.execute(
+                f"SELECT user_id, user_name, email, name, user_type, role, status, is_approved FROM {db.user_table()} WHERE user_id = {p}",
+                (g.user_id,),
+            )
+            user_row = cursor.fetchone()
+            if not user_row:
+                return jsonify({"success": False, "message": "User not found"}), 401
+
+            user_dict = dict(user_row)
+            g.current_user = user_dict
+            user_role = str(user_dict.get("role") or user_dict.get("user_type") or "USER").upper()
+            user_type = str(user_dict.get("user_type") or "").upper()
+            g.user_role = "ADMIN" if (user_role == "ADMIN" or user_type == "ADMIN" or g.user_id == 1) else user_role
+            g.is_admin = (g.user_role == "ADMIN")
+
+            # Check approval status
+            status = str(user_dict.get("status") or ("APPROVED" if g.is_admin else "PENDING")).upper()
+            is_approved = bool(user_dict.get("is_approved")) or status == "APPROVED" or g.is_admin
+            if not is_approved and not g.is_admin:
+                if status == "REJECTED":
+                    return jsonify({
+                        "success": False,
+                        "rejected": True,
+                        "status": "REJECTED",
+                        "message": "Your access request has been declined by the administrator. Please contact support."
+                    }), 403
+                return jsonify({
+                    "success": False,
+                    "pending_approval": True,
+                    "status": "PENDING",
+                    "message": "Your account is awaiting approval from the administrator. Please wait for access to be granted."
+                }), 403
+        finally:
+            conn.close()
+
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def require_admin(view):
+    """Require authenticated user with administrator privileges."""
+
+    @wraps(view)
+    @require_auth
+    def wrapped(*args, **kwargs):
+        if request.method == "OPTIONS":
+            return view(*args, **kwargs)
+
+        if not getattr(g, "is_admin", False):
+            return jsonify({"success": False, "message": "Administrator privileges required"}), 403
         return view(*args, **kwargs)
 
     return wrapped

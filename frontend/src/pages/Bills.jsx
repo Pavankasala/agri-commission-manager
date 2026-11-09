@@ -187,7 +187,7 @@ export default function Bills({ user, onLogout }) {
                     const price = Number(b.price) || 0;
                     const total = bags * price;
                     const advance = Number(b.advance) || 0;
-                    
+
                     // Bill status is confirmed when paid === 'YES' OR confirmed === true OR advance >= total (when total > 0)
                     const isConfirmed = b.paid === 'YES' || Boolean(b.confirmed) || (total > 0 && advance >= total);
 

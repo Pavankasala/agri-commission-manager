@@ -743,6 +743,209 @@ class AgriCommissionManagerTestCase(unittest.TestCase):
         self.assertAlmostEqual(total, 0.0, places=2,
             msg='TOTAL BALANCE must be 0 when all bills are paid')
 
+    def test_31_user_approval_flow_and_admin_access_control(self):
+        """Complete verification of user access approval workflow and role enforcement:
+        1. New user registration is created with PENDING status.
+        2. Unapproved user cannot login (403 Forbidden).
+        3. Admin can view pending users and count.
+        4. Admin approves the user.
+        5. Approved user can successfully login and access endpoints.
+        6. Admin can revoke access and reject user.
+        """
+        # Step 1: Register a new user
+        reg_res = self.client.post('/api/signup', json={
+            'name': 'Pending Farmer',
+            'email': 'pending_farmer@agri.com',
+            'password': 'strongpassword123'
+        })
+        self.assertEqual(reg_res.status_code, 201)
+        reg_data = json.loads(reg_res.data)
+        self.assertTrue(reg_data['success'])
+        self.assertTrue(reg_data.get('pending_approval'))
+        new_user_id = reg_data['user']['user_id']
+        self.assertEqual(reg_data['user']['status'], 'PENDING')
+        self.assertFalse(reg_data['user']['is_approved'])
+
+        # Step 2: Unapproved user attempts login -> must receive 403 Forbidden
+        login_res = self.client.post('/api/login', json={
+            'email': 'pending_farmer@agri.com',
+            'password': 'strongpassword123'
+        })
+        self.assertEqual(login_res.status_code, 403)
+        login_data = json.loads(login_res.data)
+        self.assertFalse(login_data['success'])
+        self.assertTrue(login_data.get('pending_approval'))
+
+        # Step 3: Admin checks pending count and users list
+        count_res = self.client.get('/api/admin/pending-count', headers=self.auth_headers)
+        self.assertEqual(count_res.status_code, 200)
+        self.assertGreaterEqual(json.loads(count_res.data)['pending_count'], 1)
+
+        users_res = self.client.get('/api/admin/users', headers=self.auth_headers)
+        self.assertEqual(users_res.status_code, 200)
+        users = json.loads(users_res.data)['users']
+        target_in_list = next((u for u in users if u['user_id'] == new_user_id), None)
+        self.assertIsNotNone(target_in_list)
+        self.assertEqual(target_in_list['status'], 'PENDING')
+
+        # Step 4: Admin approves the user
+        approve_res = self.client.post(f'/api/admin/users/{new_user_id}/approve', headers=self.auth_headers)
+        self.assertEqual(approve_res.status_code, 200)
+        self.assertTrue(json.loads(approve_res.data)['success'])
+
+        # Step 5: Now the approved user logs in successfully
+        login_approved = self.client.post('/api/login', json={
+            'email': 'pending_farmer@agri.com',
+            'password': 'strongpassword123'
+        })
+        self.assertEqual(login_approved.status_code, 200)
+        approved_token = json.loads(login_approved.data)['access_token']
+        farmer_headers = {'Authorization': f'Bearer {approved_token}'}
+
+        # Step 6: Approved user can now access protected endpoints
+        home_res = self.client.get('/api/home-bills', headers=farmer_headers)
+        self.assertEqual(home_res.status_code, 200)
+
+        # Step 7: Non-admin approved user CANNOT access admin endpoints
+        admin_res = self.client.get('/api/admin/users', headers=farmer_headers)
+        self.assertEqual(admin_res.status_code, 403)
+
+        # Step 8: Admin revokes access
+        revoke_res = self.client.post(f'/api/admin/users/{new_user_id}/revoke', headers=self.auth_headers)
+        self.assertEqual(revoke_res.status_code, 200)
+
+        # Once revoked, user's subsequent requests are blocked with 403
+        blocked_res = self.client.get('/api/home-bills', headers=farmer_headers)
+        self.assertEqual(blocked_res.status_code, 403)
+
+    def test_32_mark_bill_paid_zero_net_and_history(self):
+        # Create a BUY bill
+        create_res = self.client.post('/api/add-bill', json={
+            'name': 'Ramesh Kumar',
+            'no_of_bags': 20,
+            'price': 200,
+            'hamali': 10,
+            'advance': 1000,
+            'billdate': '2026-11-09',
+            'time': '10:00 AM'
+        }, headers=self.auth_headers)
+        self.assertEqual(create_res.status_code, 200)
+
+        # Check initial unpaid state
+        home_res = self.client.get('/api/home-bills?date=2026-11-09', headers=self.auth_headers)
+        self.assertEqual(home_res.status_code, 200)
+        bills = json.loads(home_res.data)['bills']
+        target = [b for b in bills if b['name'] == 'Ramesh Kumar'][0]
+        bill_id = target['id']
+        self.assertEqual(target['paid'], 'NO')
+        # Gross = 4000, Hamali = 200, Comm = 160, Damage = 240 -> Net = 3400. Advance = 1000 -> Net Payable = 2400
+        self.assertEqual(target['net_payable'], 2400.0)
+
+        # Mark paid with payment history
+        mark_res = self.client.post(f'/api/mark-bill-paid/{bill_id}', json={
+            'paid': 'YES',
+            'paid_date': '2026-11-09 05:00 PM',
+            'paid_amount': 2400.0
+        }, headers=self.auth_headers)
+        self.assertEqual(mark_res.status_code, 200)
+        mark_data = json.loads(mark_res.data)
+        self.assertTrue(mark_data['success'])
+        self.assertEqual(mark_data['paid'], 'YES')
+        self.assertEqual(mark_data['paid_date'], '2026-11-09 05:00 PM')
+        self.assertEqual(mark_data['paid_amount'], 2400.0)
+
+        # Verify net payable becomes 0.0 and history is returned
+        home_after = self.client.get('/api/home-bills?date=2026-11-09', headers=self.auth_headers)
+        self.assertEqual(home_after.status_code, 200)
+        bills_after = json.loads(home_after.data)['bills']
+        target_after = [b for b in bills_after if b['id'] == bill_id][0]
+        self.assertEqual(target_after['paid'], 'YES')
+        self.assertEqual(target_after['net_payable'], 0.0)
+        self.assertEqual(target_after['paid_date'], '2026-11-09 05:00 PM')
+        self.assertEqual(target_after['paid_amount'], 2400.0)
+
+        # Unmark to verify restoration
+        unmark_res = self.client.post(f'/api/mark-bill-paid/{bill_id}', json={
+            'paid': 'NO'
+        }, headers=self.auth_headers)
+        self.assertEqual(unmark_res.status_code, 200)
+
+        home_unmarked = self.client.get('/api/home-bills?date=2026-11-09', headers=self.auth_headers)
+        target_unmarked = [b for b in json.loads(home_unmarked.data)['bills'] if b['id'] == bill_id][0]
+        self.assertEqual(target_unmarked['paid'], 'NO')
+        self.assertEqual(target_unmarked['net_payable'], 2400.0)
+
+    def test_33_kisan_mobile_record_persistence_and_auto_fetch(self):
+        # 1. Add a bill with a mobile number entered into records
+        res1 = self.client.post('/api/add-bill', json={
+            'name': 'Sita Ram',
+            'mobile': '9876543210',
+            'no_of_bags': 10,
+            'price': 100,
+            'billdate': '2026-11-09'
+        }, headers=self.auth_headers)
+        self.assertEqual(res1.status_code, 200)
+
+        # Verify it was saved to kisans directory
+        kisans_res = self.client.get('/api/kisans', headers=self.auth_headers)
+        self.assertEqual(kisans_res.status_code, 200)
+        kisans = json.loads(kisans_res.data)['kisans']
+        k_match = [k for k in kisans if k['name'].lower() == 'sita ram']
+        self.assertTrue(len(k_match) > 0)
+        self.assertEqual(k_match[0]['mobile'], '9876543210')
+
+        # 2. Verify the bill itself has mobile
+        home_res = self.client.get('/api/home-bills?date=2026-11-09', headers=self.auth_headers)
+        self.assertEqual(home_res.status_code, 200)
+        bills = json.loads(home_res.data)['bills']
+        b_match = [b for b in bills if b['name'].lower() == 'sita ram']
+        self.assertEqual(b_match[0]['mobile'], '9876543210')
+
+        # 3. Add a second bill for the same Kisan without passing mobile
+        res2 = self.client.post('/api/add-bill', json={
+            'name': 'Sita Ram',
+            'no_of_bags': 5,
+            'price': 150,
+            'billdate': '2026-11-09'
+        }, headers=self.auth_headers)
+        self.assertEqual(res2.status_code, 200)
+
+        # Verify the second bill automatically fetched the previously entered mobile
+        home_res2 = self.client.get('/api/home-bills?date=2026-11-09', headers=self.auth_headers)
+        bills2 = json.loads(home_res2.data)['bills']
+        sita_bills = [b for b in bills2 if b['name'].lower() == 'sita ram']
+        for b in sita_bills:
+            self.assertEqual(b['mobile'], '9876543210')
+
+    def test_34_cors_preflight_and_sms_sending(self):
+        # 1. CORS Preflight OPTIONS to /api/send-sms without token must succeed (HTTP 200)
+        options_res = self.client.options('/api/send-sms')
+        self.assertEqual(options_res.status_code, 200)
+
+        # 2. Calling send-sms without token is rejected
+        unauth_res = self.client.post('/api/send-sms', json={
+            'mobile': '6301004891',
+            'message': 'Test invoice message'
+        })
+        self.assertEqual(unauth_res.status_code, 401)
+
+        # 3. Calling send-sms with valid auth succeeds and creates log
+        sms_res = self.client.post('/api/send-sms', json={
+            'mobile': '6301004891',
+            'message': 'Agri Commission Manager: Test invoice',
+            'bill_id': 38
+        }, headers=self.auth_headers)
+        self.assertEqual(sms_res.status_code, 200)
+        sms_data = json.loads(sms_res.data)
+        self.assertTrue(sms_data['success'])
+
+        # 4. Verify SMS is recorded in sms-history
+        hist_res = self.client.get('/api/sms-history', headers=self.auth_headers)
+        self.assertEqual(hist_res.status_code, 200)
+        hist = json.loads(hist_res.data)['history']
+        matching = [h for h in hist if h['mobile'] == '6301004891']
+        self.assertTrue(len(matching) > 0)
+
 
 if __name__ == '__main__':
     unittest.main()

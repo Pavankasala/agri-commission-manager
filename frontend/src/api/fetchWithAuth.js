@@ -28,6 +28,16 @@ export async function fetchWithAuth(url, options = {}) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
+  } else if (response.status === 403) {
+    try {
+      const clone = response.clone();
+      const body = await clone.json();
+      if (body?.pending_approval || body?.rejected || (body?.message && body.message.toLowerCase().includes('approval'))) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    } catch (e) {}
   }
 
   return response;

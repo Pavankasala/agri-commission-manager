@@ -36,7 +36,7 @@ export default function SoldData({ user, onLogout }) {
           const names = res.data.shops.map(s => s.name).filter(Boolean);
           setBuyerOptions(['Please Select ...', ...Array.from(new Set(names))]);
         }
-      } catch (e) {}
+      } catch (e) { }
     };
     fetchBuyers();
     fetchSoldData();
@@ -91,7 +91,7 @@ export default function SoldData({ user, onLogout }) {
         alert('Sold data saved successfully');
       }
       fetchSoldData();
-    } catch (err) {}
+    } catch (err) { }
 
     resetForm();
   };
@@ -133,7 +133,7 @@ export default function SoldData({ user, onLogout }) {
     try {
       await axios.delete(`${API_BASE_URL}/api/delete-sold-data/${id}`);
       fetchSoldData();
-    } catch (e) {}
+    } catch (e) { }
     setConfirmDeleteId(null);
   };
 
@@ -147,7 +147,7 @@ export default function SoldData({ user, onLogout }) {
 
       <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-          
+
           {/* Card 1: Sold Data Form */}
           <div style={{ flex: '1 1 340px', minWidth: '280px', backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
             <div style={{ backgroundColor: '#4286f4', color: 'white', padding: '10px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>

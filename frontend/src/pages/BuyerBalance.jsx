@@ -39,8 +39,8 @@ export default function BuyerBalance({ user, onLogout }) {
   };
 
   // Use the backend-computed fields from /api/buyer-balance — no local recalculation.
-  const totalAmountSum  = balanceData.reduce((acc, b) => acc + Number(b.total_amount    || 0), 0);
-  const totalPaidSum    = balanceData.reduce((acc, b) => acc + Number(b.cash_paid       || 0), 0);
+  const totalAmountSum = balanceData.reduce((acc, b) => acc + Number(b.total_amount || 0), 0);
+  const totalPaidSum = balanceData.reduce((acc, b) => acc + Number(b.cash_paid || 0), 0);
   const totalPendingSum = balanceData.reduce((acc, b) => acc + Number(b.pending_balance || 0), 0);
 
   return (
@@ -125,9 +125,9 @@ export default function BuyerBalance({ user, onLogout }) {
                     </tr>
                   ) : (
                     balanceData.map((b, idx) => {
-                      const total   = Number(b.total_amount    || 0);
+                      const total = Number(b.total_amount || 0);
                       // cash_paid: amount actually paid (net if fully paid, else advance)
-                      const paid    = Number(b.cash_paid       ?? (b.paid === 'YES' ? total : (b.advance || 0)));
+                      const paid = Number(b.cash_paid ?? (b.paid === 'YES' ? total : (b.advance || 0)));
                       // pending_balance already computed by backend: max(0, net − advance) or 0 if paid
                       const pending = Number(b.pending_balance ?? Math.max(0, total - paid));
                       return (

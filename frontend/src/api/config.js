@@ -33,5 +33,13 @@ export const API_ENDPOINTS = {
   SHOPS: `${API_BASE_URL}/api/shops`,
   LOCAL_SALE: `${API_BASE_URL}/api/local-sale`,
   SOLD_DATA: `${API_BASE_URL}/api/sold-data`,
-  BEAT_PAPER: `${API_BASE_URL}/api/beat-paper`
+  BEAT_PAPER: `${API_BASE_URL}/api/beat-paper`,
+  AUTH_ME: `${API_BASE_URL}/api/me`,
+  ADMIN_USERS: `${API_BASE_URL}/api/admin/users`,
+  ADMIN_APPROVE_USER: (id) => `${API_BASE_URL}/api/admin/users/${id}/approve`,
+  ADMIN_REJECT_USER: (id) => `${API_BASE_URL}/api/admin/users/${id}/reject`,
+  ADMIN_REVOKE_USER: (id) => `${API_BASE_URL}/api/admin/users/${id}/revoke`,
+  ADMIN_TOGGLE_ROLE: (id) => `${API_BASE_URL}/api/admin/users/${id}/toggle-role`,
+  ADMIN_DELETE_USER: (id) => `${API_BASE_URL}/api/admin/users/${id}`,
+  ADMIN_PENDING_COUNT: `${API_BASE_URL}/api/admin/pending-count`
 };

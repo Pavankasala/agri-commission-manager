@@ -6,11 +6,11 @@ import { API_BASE_URL } from '../api/config';
 export default function Advance({ user, onLogout }) {
   const [advanceDate, setAdvanceDate] = useState(() => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const [multiDate, setMultiDate] = useState(() => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const [selectedKisan, setSelectedKisan] = useState('');
   const [singleAmount, setSingleAmount] = useState('0');
@@ -62,7 +62,7 @@ export default function Advance({ user, onLogout }) {
         const validNames = extraNames.filter(Boolean).map(n => n.trim());
         const unique = Array.from(new Set(validNames));
         setKisanOptions(unique);
-      } catch (e) {}
+      } catch (e) { }
     };
     fetchKisans();
   }, []);
@@ -104,7 +104,7 @@ export default function Advance({ user, onLogout }) {
         }, { headers: getAuthHeader() });
         alert(`Advance of ₹${singleAmount} added for ${selectedKisan}`);
       }
-    } catch (err) {}
+    } catch (err) { }
 
     setEditingAdvanceId(null);
     setFilterDate(advanceDate);
@@ -148,7 +148,7 @@ export default function Advance({ user, onLogout }) {
       setFilterDate(multiDate);
       setFilterKisan('');
       fetchAdvanceDetails(multiDate, '');
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const handleEditAdvance = (item) => {
@@ -170,7 +170,7 @@ export default function Advance({ user, onLogout }) {
     try {
       await axios.delete(`${API_BASE_URL}/api/delete-advance/${id}`, { headers: getAuthHeader() });
       fetchAdvanceDetails();
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const fetchAdvanceDetails = async (overrideDate = filterDate, overrideKisan = filterKisan) => {
@@ -205,7 +205,7 @@ export default function Advance({ user, onLogout }) {
 
       <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-          
+
           {/* Card 1: Add Advance (Single Kisan) */}
           <div style={{ flex: '1 1 340px', minWidth: '280px', backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
             <div style={{ backgroundColor: '#15803d', color: 'white', padding: '10px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>
@@ -400,45 +400,45 @@ export default function Advance({ user, onLogout }) {
                       ? Number(item.remaining_to_pay)
                       : Math.max(0, netAmt - (Number(item.advance) || 0));
                     return (
-                    <tr key={item.id || idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
-                      <td style={{ padding: '8px' }}>{idx + 1}</td>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#0f172a' }}>{item.name}</td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>{item.no_of_bags}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', color: '#334155', fontWeight: 'bold' }}>
-                        ₹{Number(item.old_balance || item.display_total || 0).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'right', color: '#1e40af', fontWeight: 'bold' }}>
-                        ₹{netAmt.toLocaleString()}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'right', color: '#dc2626', fontWeight: 'bold' }}>
-                        ₹{Number(item.advance || 0).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'right', color: remAmt > 0 ? '#d97706' : '#16a34a', fontWeight: 'bold' }}>
-                        ₹{remAmt.toLocaleString()}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>{item.date || filterDate} {item.time || item.advanceTime || ''}</td>
-                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: item.paid === 'YES' ? '#16a34a' : '#dc2626' }}>
-                        {item.paid || 'NO'}
-                      </td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleEditAdvance(item)}
-                            style={{ backgroundColor: '#eab308', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(item.id)}
-                            style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                      <tr key={item.id || idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                        <td style={{ padding: '8px' }}>{idx + 1}</td>
+                        <td style={{ padding: '8px', fontWeight: 'bold', color: '#0f172a' }}>{item.name}</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>{item.no_of_bags}</td>
+                        <td style={{ padding: '8px', textAlign: 'right', color: '#334155', fontWeight: 'bold' }}>
+                          ₹{Number(item.old_balance || item.display_total || 0).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'right', color: '#1e40af', fontWeight: 'bold' }}>
+                          ₹{netAmt.toLocaleString()}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'right', color: '#dc2626', fontWeight: 'bold' }}>
+                          ₹{Number(item.advance || 0).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'right', color: remAmt > 0 ? '#d97706' : '#16a34a', fontWeight: 'bold' }}>
+                          ₹{remAmt.toLocaleString()}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>{item.date || filterDate} {item.time || item.advanceTime || ''}</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: item.paid === 'YES' ? '#16a34a' : '#dc2626' }}>
+                          {item.paid || 'NO'}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleEditAdvance(item)}
+                              style={{ backgroundColor: '#eab308', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(item.id)}
+                              style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })}
                   <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>

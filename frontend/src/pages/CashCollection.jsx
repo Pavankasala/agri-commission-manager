@@ -29,7 +29,7 @@ export default function CashCollection({ user, onLogout }) {
         amount: amount,
         given_by: cname
       });
-    } catch (err) {}
+    } catch (err) { }
     alert('saved successfully');
     setAmount('');
     setCname('');
@@ -70,7 +70,7 @@ export default function CashCollection({ user, onLogout }) {
 
       <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-          
+
           {/* Card 1: Add Cash Collection */}
           <div style={{ flex: '1 1 300px', backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
             <div style={{ backgroundColor: '#4286f4', color: 'white', padding: '10px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>

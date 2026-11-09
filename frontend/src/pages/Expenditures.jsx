@@ -7,7 +7,7 @@ export default function Expenditures({ user, onLogout }) {
   const [edate, setEdate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
-  
+
   const [singleDate, setSingleDate] = useState(new Date().toISOString().split('T')[0]);
   const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
@@ -29,7 +29,7 @@ export default function Expenditures({ user, onLogout }) {
         description: reason,
         amount: amount
       });
-    } catch (err) {}
+    } catch (err) { }
     alert('Expenditure added successfully');
     setAmount('');
     setReason('');
@@ -70,7 +70,7 @@ export default function Expenditures({ user, onLogout }) {
 
       <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-          
+
           {/* Card 1: Add Expenditures */}
           <div style={{ flex: '1 1 300px', backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
             <div style={{ backgroundColor: '#4286f4', color: 'white', padding: '10px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>

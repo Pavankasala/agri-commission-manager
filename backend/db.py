@@ -104,7 +104,11 @@ def _create_postgres_schema(cursor) -> None:
             icf REAL DEFAULT 1.0,
             default_hamali REAL DEFAULT 10.0,
             license_expires_on VARCHAR(50),
-            auth_provider VARCHAR(50) NOT NULL DEFAULT 'LOCAL'
+            auth_provider VARCHAR(50) NOT NULL DEFAULT 'LOCAL',
+            status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+            is_approved BOOLEAN NOT NULL DEFAULT FALSE,
+            role VARCHAR(20) NOT NULL DEFAULT 'USER',
+            created_at VARCHAR(50)
         );
         '''
     )
@@ -134,7 +138,9 @@ def _create_postgres_schema(cursor) -> None:
             remote_commission REAL DEFAULT 0.0,
             advance REAL DEFAULT 0.0,
             paid VARCHAR(10) DEFAULT 'NO',
-            confirmed BOOLEAN DEFAULT FALSE
+            confirmed BOOLEAN DEFAULT FALSE,
+            paid_date VARCHAR(50),
+            paid_amount REAL DEFAULT 0.0
         );
         '''
     )
@@ -244,7 +250,11 @@ def _create_sqlite_schema(cursor) -> None:
             icf REAL DEFAULT 1.0,
             default_hamali REAL DEFAULT 10.0,
             license_expires_on TEXT,
-            auth_provider TEXT NOT NULL DEFAULT 'LOCAL'
+            auth_provider TEXT NOT NULL DEFAULT 'LOCAL',
+            status TEXT NOT NULL DEFAULT 'PENDING',
+            is_approved INTEGER NOT NULL DEFAULT 0,
+            role TEXT NOT NULL DEFAULT 'USER',
+            created_at TEXT
         )
         '''
     )
@@ -274,7 +284,9 @@ def _create_sqlite_schema(cursor) -> None:
             remote_commission REAL DEFAULT 0.0,
             advance REAL DEFAULT 0.0,
             paid TEXT DEFAULT 'NO',
-            confirmed INTEGER DEFAULT 0
+            confirmed INTEGER DEFAULT 0,
+            paid_date TEXT,
+            paid_amount REAL DEFAULT 0.0
         )
         '''
     )
@@ -370,6 +382,10 @@ def _apply_postgres_migrations(cursor) -> None:
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS email VARCHAR(255)',
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS address TEXT',
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT \'LOCAL\'',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT \'PENDING\'',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT \'USER\'',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS created_at VARCHAR(50)',
         "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS user_id INT",
         "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS bill_group_id VARCHAR(64)",
         "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS source_kisan_name VARCHAR(100)",
@@ -377,6 +393,8 @@ def _apply_postgres_migrations(cursor) -> None:
         "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(30)",
         "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS time VARCHAR(50)",
         "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS confirmed BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS paid_date VARCHAR(50)",
+        "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS paid_amount REAL DEFAULT 0.0",
         "ALTER TABLE sold_data ADD COLUMN IF NOT EXISTS user_id INT",
         "ALTER TABLE expenditures ADD COLUMN IF NOT EXISTS user_id INT",
         "ALTER TABLE cash_collection ADD COLUMN IF NOT EXISTS user_id INT",
@@ -387,6 +405,12 @@ def _apply_postgres_migrations(cursor) -> None:
     ]
     for statement in statements:
         cursor.execute(statement)
+
+    try:
+        cursor.execute('UPDATE "user" SET status = \'APPROVED\', is_approved = TRUE, role = \'ADMIN\', user_type = \'ADMIN\' WHERE user_id = 1')
+        cursor.execute('UPDATE "user" SET status = \'APPROVED\', is_approved = TRUE WHERE status IS NULL')
+    except Exception:
+        pass
 
     for statement in [
         "CREATE INDEX IF NOT EXISTS idx_inventory_user_date_type ON inventory (user_id, date, type)",
@@ -404,6 +428,10 @@ def _apply_sqlite_migrations(cursor) -> None:
         "ALTER TABLE user ADD COLUMN email TEXT",
         "ALTER TABLE user ADD COLUMN address TEXT",
         "ALTER TABLE user ADD COLUMN auth_provider TEXT DEFAULT 'LOCAL'",
+        "ALTER TABLE user ADD COLUMN status TEXT DEFAULT 'PENDING'",
+        "ALTER TABLE user ADD COLUMN is_approved INTEGER DEFAULT 0",
+        "ALTER TABLE user ADD COLUMN role TEXT DEFAULT 'USER'",
+        "ALTER TABLE user ADD COLUMN created_at TEXT",
         "ALTER TABLE inventory ADD COLUMN user_id INTEGER",
         "ALTER TABLE inventory ADD COLUMN bill_group_id TEXT",
         "ALTER TABLE inventory ADD COLUMN source_kisan_name TEXT",
@@ -411,6 +439,8 @@ def _apply_sqlite_migrations(cursor) -> None:
         "ALTER TABLE inventory ADD COLUMN payment_mode TEXT",
         "ALTER TABLE inventory ADD COLUMN time TEXT",
         "ALTER TABLE inventory ADD COLUMN confirmed INTEGER DEFAULT 0",
+        "ALTER TABLE inventory ADD COLUMN paid_date TEXT",
+        "ALTER TABLE inventory ADD COLUMN paid_amount REAL DEFAULT 0.0",
         "ALTER TABLE sold_data ADD COLUMN user_id INTEGER",
         "ALTER TABLE expenditures ADD COLUMN user_id INTEGER",
         "ALTER TABLE cash_collection ADD COLUMN user_id INTEGER",
@@ -421,6 +451,12 @@ def _apply_sqlite_migrations(cursor) -> None:
     ]
     for statement in statements:
         _sqlite_add_column(cursor, statement)
+
+    try:
+        cursor.execute("UPDATE user SET status = 'APPROVED', is_approved = 1, role = 'ADMIN', user_type = 'ADMIN' WHERE user_id = 1")
+        cursor.execute("UPDATE user SET status = 'APPROVED', is_approved = 1 WHERE status IS NULL")
+    except Exception:
+        pass
 
     for statement in [
         "CREATE INDEX IF NOT EXISTS idx_inventory_user_date_type ON inventory (user_id, date, type)",

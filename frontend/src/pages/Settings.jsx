@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/config';
@@ -66,6 +67,46 @@ export default function Settings({ user, onLogout, onUpdateUser }) {
     <div>
       <Header user={user} onLogout={onLogout} />
       <br />
+      {(user?.is_admin || user?.role === 'ADMIN' || user?.user_type === 'ADMIN') && (
+        <div style={{ maxWidth: '600px', margin: '0 auto 16px', padding: '0 10px' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            color: 'white',
+            borderRadius: '10px',
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 4px 12px rgba(37,99,235,0.2)'
+          }}>
+            <div>
+              <div style={{ fontWeight: '800', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span>🔐</span> Access Control & Approvals
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', opacity: 0.9 }}>
+                Only users approved by you can access this application.
+              </p>
+            </div>
+            <Link
+              to="/user-approvals"
+              style={{
+                backgroundColor: 'white',
+                color: '#1d4ed8',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontWeight: '700',
+                fontSize: '13px',
+                textDecoration: 'none',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
+              Manage Approvals →
+            </Link>
+          </div>
+        </div>
+      )}
       <form onSubmit={handleSave} style={{ padding: '0 10px' }}>
         <table width="100%" className="tab" align="center" style={{ maxWidth: '600px', backgroundColor: '#ffffff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: '10px' }}>
           <tbody>

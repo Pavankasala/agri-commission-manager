@@ -23,6 +23,9 @@ DEFAULT_ALLOWED_ORIGINS = (
     "https://agri-commission-manager.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:3000",
 )
 
 
@@ -59,9 +62,14 @@ def create_app(test_config: dict | None = None) -> Flask:
     JWTManager(application)
 
     # Token authentication uses Authorization headers, not cookies.
+    cors_origins = "*" if application.config.get("APP_ENV") != "production" else _allowed_origins()
     CORS(
         application,
-        resources={r"/*": {"origins": _allowed_origins()}},
+        resources={r"/*": {
+            "origins": cors_origins,
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        }},
         supports_credentials=False,
     )
 

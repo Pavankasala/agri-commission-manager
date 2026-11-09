@@ -10,6 +10,7 @@ export default function Signup({ onLoginSuccess }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [registeredPending, setRegisteredPending] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -40,17 +41,34 @@ export default function Signup({ onLoginSuccess }) {
             callback: async (response) => {
               if (response && response.credential) {
                 try {
+                  setError("");
                   const backendRes = await axios.post(API_ENDPOINTS.GOOGLE_AUTH, {
                     credential: response.credential
                   });
                   if (backendRes.data && backendRes.data.success) {
+                    if (backendRes.data.pending_approval) {
+                      setRegisteredPending({
+                        name: backendRes.data.user?.name || "New User",
+                        email: backendRes.data.user?.email || "Google Account",
+                        message: backendRes.data.message || "Your account has been registered and is awaiting administrator approval."
+                      });
+                      return;
+                    }
                     const flaskJwtToken = backendRes.data.access_token || backendRes.data.token;
                     handleSignupSuccess(backendRes.data.user, flaskJwtToken);
                   } else {
                     setError(backendRes.data?.message || "Google sign-up failed. Please try again.");
                   }
                 } catch (e) {
-                  setError(e.response?.data?.message || "Google sign-up failed. Please try again.");
+                  if (e.response?.data?.pending_approval || e.response?.data?.rejected) {
+                    setRegisteredPending({
+                      name: e.response.data.user?.name || "User",
+                      email: e.response.data.user?.email || "",
+                      message: e.response.data.message || "Your account is pending administrator approval."
+                    });
+                  } else {
+                    setError(e.response?.data?.message || "Google sign-up failed. Please try again.");
+                  }
                 }
               }
             }
@@ -118,6 +136,14 @@ export default function Signup({ onLoginSuccess }) {
       });
 
       if (response.data && response.data.success) {
+        if (response.data.pending_approval) {
+          setRegisteredPending({
+            name,
+            email,
+            message: response.data.message || "Your account has been submitted and is pending administrator approval."
+          });
+          return;
+        }
         const token = response.data.access_token || response.data.token;
         handleSignupSuccess(response.data.user || { name, email }, token);
       } else {
@@ -155,82 +181,127 @@ export default function Signup({ onLoginSuccess }) {
 
         <section className="auth-form-side">
           <div className="auth-form-wrapper">
-            <div className="auth-heading">
-              <h1>Create account</h1>
-              <p>Enter your information to get started.</p>
-            </div>
+            {registeredPending ? (
+              <div style={{ textAlign: "center", padding: "24px 12px" }}>
+                <div style={{ fontSize: "52px", marginBottom: "16px" }}>⏳</div>
+                <h1 style={{ fontSize: "24px", color: "#0f172a", marginBottom: "8px", fontWeight: "800" }}>
+                  Registration Received
+                </h1>
+                <p style={{ color: "#64748b", fontSize: "15px", marginBottom: "20px" }}>
+                  Your account request has been submitted to the administrator.
+                </p>
 
-            <form className="auth-form" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="name">Full name</label>
-                <input
-                  id="name"
-                  type="text"
-                  name="name"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+                <div style={{
+                  backgroundColor: "#fffbeb",
+                  border: "1px solid #fed7aa",
+                  borderRadius: "10px",
+                  padding: "16px",
+                  margin: "20px 0",
+                  textAlign: "left",
+                  color: "#9a3412"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", marginBottom: "6px" }}>
+                    <span>🔒</span>
+                    <span>Admin Approval Required</span>
+                  </div>
+                  <p style={{ margin: "0 0 10px", fontSize: "14px" }}>
+                    Account registered for <strong>{registeredPending.name}</strong> ({registeredPending.email}).
+                  </p>
+                  <p style={{ margin: 0, fontSize: "13px", lineHeight: "1.5" }}>
+                    {registeredPending.message}
+                  </p>
+                  <p style={{ margin: "10px 0 0", fontSize: "12px", color: "#b45309" }}>
+                    Once the administrator verifies and approves your access, you can sign in with your credentials.
+                  </p>
+                </div>
+
+                <button
+                  className="auth-button"
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  style={{ width: "100%", marginTop: "10px" }}
+                >
+                  Go to Login Page
+                </button>
               </div>
+            ) : (
+              <>
+                <div className="auth-heading">
+                  <h1>Create account</h1>
+                  <p>Enter your information to get started.</p>
+                </div>
 
-              <div className="form-group">
-                <label htmlFor="signup-email">Email address</label>
-                <input
-                  id="signup-email"
-                  type="email"
-                  name="email"
-                  placeholder="farmer@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+                <form className="auth-form" onSubmit={handleSubmit}>
+                  <div className="form-group">
+                    <label htmlFor="name">Full name</label>
+                    <input
+                      id="name"
+                      type="text"
+                      name="name"
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label htmlFor="signup-password">Password</label>
-                <input
-                  id="signup-password"
-                  type="password"
-                  name="password"
-                  placeholder="Minimum 6 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+                  <div className="form-group">
+                    <label htmlFor="signup-email">Email address</label>
+                    <input
+                      id="signup-email"
+                      type="email"
+                      name="email"
+                      placeholder="farmer@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label htmlFor="confirm-password">Confirm password</label>
-                <input
-                  id="confirm-password"
-                  type="password"
-                  name="confirmPassword"
-                  placeholder="Enter password again"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
+                  <div className="form-group">
+                    <label htmlFor="signup-password">Password</label>
+                    <input
+                      id="signup-password"
+                      type="password"
+                      name="password"
+                      placeholder="Minimum 6 characters"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
 
-              {error && <p className="auth-error">{error}</p>}
+                  <div className="form-group">
+                    <label htmlFor="confirm-password">Confirm password</label>
+                    <input
+                      id="confirm-password"
+                      type="password"
+                      name="confirmPassword"
+                      placeholder="Enter password again"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
 
-              <button className="auth-button" type="submit" disabled={loading}>
-                {loading ? "Creating Account..." : "Create Account"}
-              </button>
-            </form>
+                  {error && <p className="auth-error">{error}</p>}
 
-            <div style={{ margin: "20px 0", textAlign: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", margin: "15px 0" }}>
-                <div style={{ flex: 1, height: "1px", backgroundColor: "#e2e8f0" }}></div>
-                <span style={{ padding: "0 10px", color: "#64748b", fontSize: "14px" }}>OR</span>
-                <div style={{ flex: 1, height: "1px", backgroundColor: "#e2e8f0" }}></div>
-              </div>
+                  <button className="auth-button" type="submit" disabled={loading}>
+                    {loading ? "Creating Account..." : "Create Account"}
+                  </button>
+                </form>
 
-              <div id="googleBtnContainerSignup" style={{ display: "flex", justifyContent: "center", width: "100%", minHeight: "44px" }}></div>
+                <div style={{ margin: "20px 0", textAlign: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", margin: "15px 0" }}>
+                    <div style={{ flex: 1, height: "1px", backgroundColor: "#e2e8f0" }}></div>
+                    <span style={{ padding: "0 10px", color: "#64748b", fontSize: "14px" }}>OR</span>
+                    <div style={{ flex: 1, height: "1px", backgroundColor: "#e2e8f0" }}></div>
+                  </div>
 
+                  <div id="googleBtnContainerSignup" style={{ display: "flex", justifyContent: "center", width: "100%", minHeight: "44px" }}></div>
+                </div>
 
-            </div>
-
-            <p className="auth-switch">
-              Already have an account? <Link to="/login">Login</Link>
-            </p>
+                <p className="auth-switch">
+                  Already have an account? <Link to="/login">Login</Link>
+                </p>
+              </>
+            )}
           </div>
         </section>
       </div>

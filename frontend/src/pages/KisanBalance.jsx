@@ -206,13 +206,13 @@ export default function KisanBalance({ user, onLogout }) {
                     </tr>
                   ) : (
                     balanceData.map((b, idx) => {
-                      const gross      = Number(b.total_amount   || 0);
-                      const net_amount = Number(b.net_amount     || 0);
-                      const advance    = Number(b.advance        || 0);
+                      const gross = Number(b.total_amount || 0);
+                      const net_amount = Number(b.net_amount || 0);
+                      const advance = Number(b.advance || 0);
                       // pending_balance is backend-computed: max(0, net − advance), 0 if paid
-                      const pending    = Number(b.pending_balance ?? Math.max(0, net_amount - advance));
-                      const isPaid     = b.paid === 'YES';
-                      const isMarking  = markingPaidId === b.id;
+                      const pending = Number(b.pending_balance ?? Math.max(0, net_amount - advance));
+                      const isPaid = b.paid === 'YES';
+                      const isMarking = markingPaidId === b.id;
 
                       return (
                         <tr key={b.id || idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>

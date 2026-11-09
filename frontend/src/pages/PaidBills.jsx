@@ -18,7 +18,7 @@ export default function PaidBills({ user, onLogout }) {
         setSearched(true);
         return;
       }
-    } catch (e) {}
+    } catch (e) { }
     setBills([]);
     setSearched(true);
   };

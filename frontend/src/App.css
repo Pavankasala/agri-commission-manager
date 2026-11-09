@@ -6,7 +6,8 @@
   padding: 0;
 }
 
-body, html {
+body,
+html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: #f8fafc;
   color: #1e293b;
@@ -182,9 +183,11 @@ body, html {
   .auth-container {
     flex-direction: column;
   }
+
   .auth-brand {
     padding: 32px;
   }
+
   .auth-form-side {
     padding: 32px 24px;
   }

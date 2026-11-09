@@ -71,7 +71,7 @@ export default function BalanceSheet({ user, onLogout }) {
       <Header user={user} onLogout={onLogout} />
 
       <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
-        
+
         {/* Form Card */}
         <div style={{ maxWidth: '480px', margin: '0 auto 20px auto', backgroundColor: '#ffffff', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
           <div style={{ backgroundColor: '#2563eb', color: 'white', padding: '12px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: '18px' }}>
@@ -129,7 +129,7 @@ export default function BalanceSheet({ user, onLogout }) {
         {/* Results Section */}
         {searched && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            
+
             {/* Combined Overall Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', textAlign: 'center', backgroundColor: '#f0fdf4' }}>
